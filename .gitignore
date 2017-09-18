@@ -1,0 +1,8 @@
+node_modules
+*.log
+.DS_Store
+sftp-config.json
+/sublime.sublime-project
+/sublime.sublime-workspace
+fjpublish.config.js
+example/webpack/dist
