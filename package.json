@@ -1,10 +1,10 @@
 {
   "name": "fjpublish",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A simple CLI for publish your projects.",
   "main": "./lib/index.js",
   "bin": {
-    "publish": "./bin/fjpublish.js"
+    "fjpublish": "./bin/fjpublish.js"
   },
   "scripts": {
     "webpack": "webpack --config example/webpack/build/build.js"
