@@ -11,6 +11,7 @@ const inquirer = require('inquirer');
 const { spawn, execSync } = require('child_process');
 const Fjpublish = require('../lib/index.js');
 const prompt = require('../lib/fjpublish_prompt.js');
+const git = require('../lib/fjpublish_git.js');
 const builder = require('../lib/fjpublish_builder.js');
 const compress = require('../lib/fjpublish_compress.js');
 const sftp = require('../lib/fjpublish_sftp.js');
@@ -98,6 +99,9 @@ program
     .option('--parallel', 'Parallel publishing')
     .option('-p, --prompt', 'Publish by prompt')
     .option('-m, --multiple', 'Multiple choice')
+    .option('--commit [msg]', 'Publish and git')
+    .option('--rebase', 'use git pull --rebase')
+    .option('--push', 'use git push')
     .option('--arg <arg>', 'Receive custom parameters')
     .action((cmd) => {
         assert((cmd instanceof program.constructor), 'error', 'Parameter is not valid');
@@ -143,6 +147,9 @@ program
     .option('--parallel', 'Parallel publishing')
     .option('-y, --yes', 'No confirmation prompt')
     .option('-p, --prompt', 'Publish by prompt')
+    .option('--commit [msg]', 'Publish and git')
+    .option('--rebase', 'use git pull --rebase')
+    .option('--push', 'use git push')
     .option('--arg <arg>', 'Receive custom parameters')
     .action((env, cmd) => {
         assert((cmd instanceof program.constructor), 'error', 'Parameter is not valid');
@@ -189,8 +196,8 @@ if (typeof COMMAND === 'undefined') {
     error("The command not selected or no exist, you can get help by enter 'fjpublish -h'");
 };
 
-function MAINFUNC(config, env, cmd, beforeStart) {
-    let { use = { prompt, builder, compress, sftp, shell }, nobuild, nobackup, nomerge, prompt: usePrompt, check, parallel, parent, arg } = cmd;
+function MAINFUNC(config, env, cmd) {
+    let { use = { prompt, git, builder, compress, sftp, shell }, commit, rebase, push, nobuild, nobackup, nomerge, prompt: usePrompt, check, parallel, parent, arg } = cmd;
     let extend = {};
     env = env.map(v => ({
         env: v,
@@ -211,6 +218,11 @@ function MAINFUNC(config, env, cmd, beforeStart) {
     };
     if (parallel) extend.parallel = true;
     if (check) extend.check = true;
+    if (commit) {
+        extend.gitCommit = commit;
+        extend.gitPush = push;
+        extend.gitRebase = rebase;
+    };
     if (usePrompt) {
         extend.usePrompt = true;
         extend._prompt = [{
@@ -235,7 +247,6 @@ function MAINFUNC(config, env, cmd, beforeStart) {
     let fjpublish = Fjpublish(config, env);
     Object.keys(use).forEach(v => fjpublish.use(use[v]));
     fjpublish.metadata(extend);
-    if (beforeStart && isFn(beforeStart)) beforeStart(fjpublish);
     fjpublish.start();
 };
 
