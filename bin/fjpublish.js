@@ -225,7 +225,7 @@ function MAINFUNC(config, env, cmd) {
     };
     if (usePrompt) {
         extend.usePrompt = true;
-        extend._prompt = [{
+        extend._prompts = [{
             type: 'confirm',
             name: 'nobuild',
             message: 'Do not node build direct publish ?',
