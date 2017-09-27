@@ -1,1 +1,1 @@
-文档地址：[fjpublish文档](http://manman.io/2017/09/09/fjpublish/)
+文档地址：[fjpublish文档](http://fjpublish.manman.io)
