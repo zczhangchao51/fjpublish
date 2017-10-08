@@ -1,12 +1,13 @@
 {
   "name": "fjpublish",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "A simple CLI for publish your projects.",
   "main": "./lib/index.js",
   "bin": {
     "fjpublish": "./bin/fjpublish.js"
   },
   "scripts": {
+    "test": "mocha test/*.js",
     "webpack": "webpack --config example/webpack/build/build.js"
   },
   "repository": {
@@ -42,7 +43,9 @@
     "tar-fs": "^1.15.3"
   },
   "devDependencies": {
+    "chai": "^4.1.2",
     "jquery": "^3.1.1",
+    "mocha": "^4.0.1",
     "webpack": "^2.2.1"
   },
   "engines": {

@@ -228,7 +228,7 @@ function MAINFUNC(config, env, cmd) {
         extend._prompts = [{
             type: 'confirm',
             name: 'nobuild',
-            message: 'Do not node build direct publish ?',
+            message: 'Do not node build before publish ?',
             default: false,
         }, {
             type: 'confirm',
