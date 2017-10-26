@@ -5,19 +5,21 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const program = require('commander');
-const date = require('phpdate-js');
 const is = require('is');
 const inquirer = require('inquirer');
 const { spawn, execSync } = require('child_process');
 const Fjpublish = require('../lib/index.js');
+const pull = require('../lib/fjpublish_pull.js');
 const prompt = require('../lib/fjpublish_prompt.js');
 const git = require('../lib/fjpublish_git.js');
 const builder = require('../lib/fjpublish_builder.js');
 const compress = require('../lib/fjpublish_compress.js');
 const sftp = require('../lib/fjpublish_sftp.js');
 const shell = require('../lib/fjpublish_shell.js');
-
+const push = require('../lib/fjpublish_push.js');
+const recover = require('../lib/fjpublish_recover.js');
 const logger = require('../lib/logger.js');
+
 const success = logger.success;
 const localAssert = (local, type) => (boolean, type = 'error', msg, ...arg) => logger.assert(boolean, type, msg, local, ...arg);
 const assert = localAssert('fjpublish');
@@ -89,95 +91,103 @@ program
     });
 
 program
-    .command('select')
-    .usage('[options]')
-    .description('Publish by select')
-    .option('--nobuild [env]', 'Do not node build direct publish')
-    .option('--nobackup [env]', 'Last release no backup')
-    .option('--nomerge [env]', 'No combine this release with last release')
-    .option('--check', 'Do not run the Task')
-    .option('--parallel', 'Parallel publishing')
-    .option('-p, --prompt', 'Publish by prompt')
-    .option('-m, --multiple', 'Multiple choice')
-    .option('--commit [msg]', 'Publish and git')
-    .option('--rebase', 'use git pull --rebase')
-    .option('--push', 'use git push')
-    .option('--arg <arg>', 'Receive custom parameters')
-    .action((cmd) => {
-        assert((cmd instanceof program.constructor), 'error', 'Parameter is not valid');
-        COMMAND = 'select';
-        let choices;
-        let configPath = getConfigPath(cmd.parent);
-        let config = require(configPath);
-        let modules = config.modules;
-        assert(!isUndefined(modules), 'error', "Config option 'modules' is required");
-        if (isArray(modules)) {
-            choices = modules.map(v => ({
-                name: `${chalk.green(v.env)}  ${v.name}  ${v.ssh.host}`,
-                value: v.env
-            }));
-        } else if (isObject(modules)) {
-            choices = [];
-            Object.keys(modules).forEach(v => {
-                let obj = modules[v];
-                choices.push({
-                    name: `${chalk.green(obj.env)}  ${obj.name}  ${obj.ssh.host}`,
-                    value: obj.env
-                });
-            });
-        };
-        inquirer.prompt([{
-            type: cmd.multiple ? 'checkbox' : 'list',
-            name: 'env',
-            message: 'Please select the environment to publish?',
-            choices,
-        }]).then((answers) => {
-            MAINFUNC(config, isArray(answers.env) ? answers.env : [answers.env], cmd);
-        });
-    });
-
-program
-    .command('env <env>')
-    .usage('<env> [options]')
+    .command('env [env]')
+    .usage('[env] [options]')
     .description('Publish code to remote host')
+    .option('-s, --select', 'Publish by select')
+    .option('-m, --multiple', 'Select multiple publishing environments')
     .option('--nobuild [env]', 'Do not node build direct publish')
     .option('--nobackup [env]', 'Last release no backup')
-    .option('--nomerge [env]', 'No combine this release with last release')
-    .option('--check', 'Do not run the Task')
-    .option('--parallel', 'Parallel publishing')
+    .option('--nohistory [env]', 'No pull and push history')
+    .option('-d, --diff [env]', 'Only publish modified files')
+    .option('--merge [env]', 'Merge the current version with the previous version')
+    .option('-t, --tag <message>', 'Create a tag on publish')
+    .option('--check', 'Do not run the Task and check parameters')
+    .option('--parallel', 'Parallel publish')
     .option('-y, --yes', 'No confirmation prompt')
     .option('-p, --prompt', 'Publish by prompt')
-    .option('--commit [msg]', 'Publish and git')
+    .option('--commit [msg]', 'Use git commit')
     .option('--rebase', 'use git pull --rebase')
     .option('--push', 'use git push')
     .option('--arg <arg>', 'Receive custom parameters')
     .action((env, cmd) => {
         assert((cmd instanceof program.constructor), 'error', 'Parameter is not valid');
-        COMMAND = env;
-        let module,
-            extend = {};
+        COMMAND = true;
+        let { select, multiple, yes } = cmd;
+        assert(env || select || multiple, 'error', "You must choose an environment to publish, please use 'fjpublish env <env> [option]' or 'fjpublish env -s|m [option]'")
+        let module, choices;
         let configPath = getConfigPath(cmd.parent);
         let config = require(configPath);
         let modules = config.modules;
         assert(!isUndefined(modules), 'error', "Config option 'modules' is required");
-        let configIsArray = isArray(modules);
-        let nameArr = env.split(',').map(v => {
-            if (module = configIsArray ? modules.find(vv => v === vv.env) : modules[v]) {
-                return module.name;
-            } else {
-                error(`The selected environment '${v}' does not exist`);
+        if (env) {
+            let configIsArray = isArray(modules);
+            let nameArr = env.split(',').map(v => {
+                if (module = configIsArray ? modules.find(vv => v === vv.env) : modules[v]) {
+                    return module.name;
+                } else {
+                    error(`The selected environment '${v}' does not exist`);
+                };
+            });
+            if (yes) return MAINFUNC(config, env.split(','), cmd);
+            inquirer.prompt([{
+                type: 'confirm',
+                name: 'confirm',
+                message: `Confirm publish to ${chalk.red(nameArr.join(','))} ?`,
+                default: false,
+            }]).then((answers) => {
+                if (answers.confirm) MAINFUNC(config, env.split(','), cmd);
+            });
+        } else {
+            if (isArray(modules)) {
+                choices = modules.map(v => ({
+                    name: `${chalk.green(v.env)}  ${v.name}  ${v.ssh.host}`,
+                    value: v.env
+                }));
+            } else if (isObject(modules)) {
+                choices = [];
+                Object.keys(modules).forEach(v => {
+                    let obj = modules[v];
+                    choices.push({
+                        name: `${chalk.green(obj.env)}  ${obj.name}  ${obj.ssh.host}`,
+                        value: obj.env
+                    });
+                });
             };
-        });
-        if (cmd.yes) return MAINFUNC(config, env.split(','), cmd);
-        inquirer.prompt([{
-            type: 'confirm',
-            name: 'confirm',
-            message: `Confirm publish to ${chalk.red(nameArr.join(','))} ?`,
-            default: false,
-        }]).then((answers) => {
-            if (answers.confirm) MAINFUNC(config, env.split(','), cmd);
-        });
+            inquirer.prompt([{
+                type: multiple ? 'checkbox' : 'list',
+                name: 'env',
+                message: 'Please select the environment to publish?',
+                choices,
+            }]).then((answers) => {
+                if (isArray(answers.env) && !answers.env.length) return warning('Not to select');
+                MAINFUNC(config, isArray(answers.env) ? answers.env : [answers.env], cmd);
+            });
+        };
     })
+
+program
+    .command('recover <env>')
+    .description('Recover the code to a version')
+    .option('-p, --previous', 'Recover the code to the previous version')
+    .option('-l, --length <n>', 'How many length of history records want to show')
+    .action((env, cmd) => {
+        assert((cmd instanceof program.constructor), 'error', 'Parameter is not valid');
+        COMMAND = env;
+        let { previous, length } = cmd;
+        let configPath = getConfigPath(cmd.parent);
+        let config = require(configPath);
+        let modules = config.modules;
+        assert(!isUndefined(modules), 'error', "Config option 'modules' is required");
+        let module = isArray(modules) ? modules.find(v => env === v.env) : modules[env];
+        assert(!isUndefined(module), 'error', `The selected environment '${env}' does not exist`);
+        let fjpublish = Fjpublish(config, [{ env, _recover: { previous, length } }]);
+        fjpublish.use(pull)
+            .use(recover)
+            .use(push)
+            .start();
+    })
+
 
 program.on('--help', function() {
     console.log('');
@@ -185,8 +195,8 @@ program.on('--help', function() {
     console.log('');
     console.log('    $ fjpublish init');
     console.log('    $ fjpublish list');
-    console.log('    $ fjpublish select [option]');
-    console.log('    $ fjpublish env <env> [option]');
+    console.log('    $ fjpublish env [env] [option]');
+    console.log('    $ fjpublish recover <env> [option]');
     console.log('');
 });
 
@@ -197,14 +207,18 @@ if (typeof COMMAND === 'undefined') {
 };
 
 function MAINFUNC(config, env, cmd) {
-    let { use = { prompt, git, builder, compress, sftp, shell }, commit, rebase, push, nobuild, nobackup, nomerge, prompt: usePrompt, check, parallel, parent, arg } = cmd;
+    let { use = { pull, prompt, git, builder, compress, sftp, shell, push }, commit, rebase, tag, push: gitpush, nobuild, nobackup, nohistory, merge, diff, prompt: usePrompt, check, parallel, parent, arg } = cmd;
     let extend = {};
     env = env.map(v => ({
         env: v,
         nobuild: cmdExtendModules(v, nobuild),
         nobackup: cmdExtendModules(v, nobackup),
-        nomerge: cmdExtendModules(v, nomerge),
+        nohistory: cmdExtendModules(v, nohistory),
+        merge: cmdExtendModules(v, merge),
+        diff: cmdExtendModules(v, diff),
+        tag,
     }));
+    if (true) {};
     if (arg) {
         let parse = cmdCustomArgParse(arg);
         parse.forEach(v => {
@@ -220,7 +234,7 @@ function MAINFUNC(config, env, cmd) {
     if (check) extend.check = true;
     if (commit) {
         extend.gitCommit = commit;
-        extend.gitPush = push;
+        extend.gitPush = gitpush;
         extend.gitRebase = rebase;
     };
     if (usePrompt) {
@@ -237,17 +251,17 @@ function MAINFUNC(config, env, cmd) {
             default: false,
         }, {
             type: 'confirm',
-            name: 'nomerge',
-            message: 'No combine this release with last release ?',
+            name: 'merge',
+            message: 'Merge the current version with the previous version ?',
             default: false,
         }];
-        extend._promptSyncModule = ['nobuild', 'nobackup', 'nomerge']
+        extend._promptSyncModule = ['nobuild', 'nobackup', 'merge']
     };
 
     let fjpublish = Fjpublish(config, env);
     Object.keys(use).forEach(v => fjpublish.use(use[v]));
     fjpublish.metadata(extend);
-    fjpublish.start();
+    fjpublish.start(true);
 };
 
 //asd:cbd@a-b-c
