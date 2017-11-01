@@ -102,6 +102,7 @@ program
     .option('-d, --diff [env]', 'Only publish modified files')
     .option('--merge [env]', 'Merge the current version with the previous version')
     .option('-t, --tag <message>', 'Create a tag on publish')
+    .option('--cmd <command>', 'Set node build command')
     .option('--check', 'Do not run the Task and check parameters')
     .option('--parallel', 'Parallel publish')
     .option('-y, --yes', 'No confirmation prompt')
@@ -207,7 +208,7 @@ if (typeof COMMAND === 'undefined') {
 };
 
 function MAINFUNC(config, env, cmd) {
-    let { use = { pull, prompt, git, builder, compress, sftp, shell, push }, commit, rebase, tag, push: gitpush, nobuild, nobackup, nohistory, merge, diff, prompt: usePrompt, check, parallel, parent, arg } = cmd;
+    let { use = { pull, prompt, git, builder, compress, sftp, shell, push }, commit, rebase, tag, push: gitpush, nobuild, nobackup, nohistory, merge, diff, prompt: usePrompt, check, parallel, parent, arg, cmd: command } = cmd;
     let extend = {};
     env = env.map(v => ({
         env: v,
@@ -217,8 +218,8 @@ function MAINFUNC(config, env, cmd) {
         merge: cmdExtendModules(v, merge),
         diff: cmdExtendModules(v, diff),
         tag,
+        buildCommand: command
     }));
-    if (true) {};
     if (arg) {
         let parse = cmdCustomArgParse(arg);
         parse.forEach(v => {
