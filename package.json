@@ -1,6 +1,6 @@
 {
   "name": "fjpublish",
-  "version": "2.0.0-rc2",
+  "version": "2.0.0-rc3",
   "description": "A simple CLI for publish your projects.",
   "main": "./lib/index.js",
   "bin": {
