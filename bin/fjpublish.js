@@ -81,12 +81,15 @@ program
         if (key) assert(path.isAbsolute(key) && path.extname(key) === '.pub', 'error', "please select a public key and path must be absolute path, eg '/abc/cde.pub'");
         if (key) assert(fs.existsSync(key), 'error', "Public key you choice is not exist");
         if (!key) key = defaultKey;
-        exec(`cat ${key} | ssh ${server} 'mkdir -p ~/.ssh && cat >>  ~/.ssh/authorized_keys'`, (err, stdout, stderr) => {
-            if (err) {
-                error(`auth error: ${err}`);
-                return;
-            };
+        let catKey = fs.createReadStream(key, 'utf8');
+        let sshAuth = exec(`ssh ${server} "mkdir -p ~/.ssh && cat >>  ~/.ssh/authorized_keys"`, (err, stdout, stderr) => {
+            if (err) return error(err);
             success('auth success');
+        });
+        catKey.on('data', (data) => {
+            sshAuth.stdin.write(data);
+        }).on('close', code => {
+            sshAuth.stdin.end();
         });
     });
 
@@ -198,7 +201,7 @@ program.on('--help', function () {
     console.log('    $ fjpublish init');
     console.log('    $ fjpublish list');
     console.log('    $ fjpublish env [env] [option]');
-    console.log('    $ fjpublish auth <server>');
+    console.log('    $ fjpublish auth <server> [option]');
     console.log('    $ fjpublish recover <env> [option]');
     console.log('');
 });
