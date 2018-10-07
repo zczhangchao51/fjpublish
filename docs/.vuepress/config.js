@@ -32,8 +32,9 @@ module.exports = {
       }
     ],
     algolia: {
-      apiKey: '4740338bb10c3c8d523c42cb8901aa2c',
-      indexName: 'fjpublish_docs'
+      appId: '3Z3BZLORQY',
+      apiKey: 'ed4b3329e943eb3b41fdd4903b91c4db',
+      indexName: 'prod_fjpublish_docs'
     },
     sidebar: {
       '/guide/': [
