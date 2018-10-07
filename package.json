@@ -8,7 +8,9 @@
   },
   "scripts": {
     "test": "mocha test/*.js",
-    "webpack": "webpack --config example/webpack/build/build.js"
+    "webpack": "webpack --config example/webpack/build/build.js",
+    "docs": "vuepress dev docs -p 8083",
+    "docs:build": "vuepress build docs"
   },
   "repository": {
     "type": "git",
@@ -44,6 +46,7 @@
     "tar-fs": "^1.16.0"
   },
   "devDependencies": {
+    "@tweenjs/tween.js": "^17.2.0",
     "chai": "^4.1.2",
     "eslint": "^4.14.0",
     "eslint-config-standard": "^11.0.0-beta.0",
@@ -53,7 +56,9 @@
     "eslint-plugin-standard": "^3.0.1",
     "jquery": "^3.2.1",
     "mocha": "^3.5.3",
-    "webpack": "^2.7.0"
+    "vuepress": "^0.14.4",
+    "vuepress-theme-codemao_docs": "git+ssh://git@github.com/KittenTeam/vuepress-theme-codemao_docs.git",
+    "webpack": "^4.20.2"
   },
   "engines": {
     "node": ">=6.0.0"
