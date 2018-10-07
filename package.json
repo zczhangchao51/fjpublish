@@ -57,7 +57,7 @@
     "jquery": "^3.2.1",
     "mocha": "^3.5.3",
     "vuepress": "^0.14.4",
-    "vuepress-theme-codemao_docs": "git+ssh://git@github.com/KittenTeam/vuepress-theme-codemao_docs.git",
+    "vuepress-theme-codemao_docs": "git+https://github.com/KittenTeam/vuepress-theme-codemao_docs.git",
     "webpack": "^4.20.2"
   },
   "engines": {
