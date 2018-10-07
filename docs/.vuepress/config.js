@@ -31,6 +31,10 @@ module.exports = {
         link: 'https://github.com/zczhangchao51/fjpublish/releases'
       }
     ],
+    algolia: {
+      apiKey: '4740338bb10c3c8d523c42cb8901aa2c',
+      indexName: 'fjpublish_docs'
+    },
     sidebar: {
       '/guide/': [
         {
